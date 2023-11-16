@@ -127,3 +127,17 @@ conda env create --file environment.yml
 conda activate jtranslate
 ```
 Copy and execute each line one by one -- not as a block.
+
+
+## Batch translation
+To translate all notebooks in a directory, use the `batch_translate.py` script.  它会在原笔记原目录下，创建翻译过的文件，而且文件名称也会被翻译.  
+To use it, enter:
+```
+python batch_translate.py <directory> <language>
+```
+比如   
+python batch_translate.py --source_directory='Data-Structures-and-Algorithms' --language='zh-cn'
+但这里以一点要特别注意：
+你需要把要翻译的目录拷贝到此目录下，然后再执行上面的命令，否则会报错。
+``` 
+```

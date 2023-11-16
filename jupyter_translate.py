@@ -7,10 +7,14 @@ def translate_text(text, dest_language='pt'):
 
 def translate_markdown(text, dest_language='pt'):
     # Regex expressions
-    MD_CODE_REGEX='```[a-z]*\n[\s\S]*?\n```'
+    #MD_CODE_REGEX='```[a-z]*\n[\s\S]*?\n```'
+    MD_CODE_REGEX = r'```[a-z]*\n[\s\S]*?\n```'
+ 
     CODE_REPLACEMENT_KW = 'xx_markdown_code_xx'
 
-    MD_LINK_REGEX="\[[^)]+\)"
+    #MD_LINK_REGEX="\[[^)]+\)"
+    MD_LINK_REGEX = r"\[[^)]+\)"
+
     LINK_REPLACEMENT_KW = 'xx_markdown_link_xx'
 
     # Markdown tags
@@ -68,16 +72,28 @@ def translate_markdown(text, dest_language='pt'):
     return translate(text)
 
 #export
-def jupyter_translate(fname, language='pt', rename_source_file=False, dest_file=None, translate_filename=True, print_translation=False):
+def jupyter_translate(fname, language='pt', rename_source_file=False, translate_filename=True, print_translation=False):
     """
     TODO:
     add dest_path: Destination folder in order to save the translated files.
     """
+    print("fname ---------", fname)
+    # 翻译文件名
+    if translate_filename:
+        base_name, extension = os.path.splitext(fname)
+        directory_path = os.path.dirname(base_name)
+        file_name = os.path.basename(base_name)
+        translated_base_name = os.path.join(directory_path, translate_text(file_name, dest_language=language))
+        dest_fname = f"{translated_base_name}{extension}"
+        #print("____:",base_name,file_name,translated_base_name,dest_fname)
+    else:
+        dest_fname = f"{'.'.join(fname.split('.')[:-1])}_{language}.ipynb"
 
-    print("dest_file ---------", dest_file)
+    if os.path.exists(dest_fname):
+        print(f'{dest_fname} already exists. Skipping...')
+        return
 
     data_translated = json.load(open(fname, 'r'))
-
     skip_row=False
     for i, cell in enumerate(data_translated['cells']):
         for j, source in enumerate(cell['source']):
@@ -92,13 +108,16 @@ def jupyter_translate(fname, language='pt', rename_source_file=False, dest_file=
                             translate_markdown(source, dest_language=language)
             if print_translation:
                 print(data_translated['cells'][i]['source'][j])
-    # 翻译文件名
-    if translate_filename:
-        base_name, extension = os.path.splitext(fname)
-        translated_base_name = translate_text(base_name, dest_language=language)
-        dest_fname = f"{translated_base_name}{extension}"
-    else:
-        dest_fname = f"{'.'.join(fname.split('.')[:-1])}_{language}.ipynb"
+    # # 翻译文件名
+    # if translate_filename:
+    #     base_name, extension = os.path.splitext(fname)
+    #     directory_path = os.path.dirname(base_name)
+    #     file_name = os.path.basename(base_name)
+    #     translated_base_name = os.path.join(directory_path, translate_text(file_name, dest_language=language))
+    #     dest_fname = f"{translated_base_name}{extension}"
+    #     #print("____:",base_name,file_name,translated_base_name,dest_fname)
+    # else:
+    #     dest_fname = f"{'.'.join(fname.split('.')[:-1])}_{language}.ipynb"
     
     
    # 保存翻译后的文件
@@ -107,12 +126,12 @@ def jupyter_translate(fname, language='pt', rename_source_file=False, dest_file=
         os.rename(fname, fname_bk)
         print(f'{fname} has been renamed as {fname_bk}')
 
-    # 使用 dest_file 作为输出文件路径
-    if dest_file is None:
-        dest_file = f"{'.'.join(fname.split('.')[:-1])}_{language}.ipynb"
+    # # 使用 dest_file 作为输出文件路径
+    # if dest_file is None:
+    #     dest_file = f"{'.'.join(fname.split('.')[:-1])}_{language}.ipynb"
 
-    # 确保目标文件夹存在
-    os.makedirs(os.path.dirname(dest_file), exist_ok=True)
+    # # 确保目标文件夹存在
+    # os.makedirs(os.path.dirname(dest_file), exist_ok=True)
 
 
     with open(dest_fname, 'w') as f:
