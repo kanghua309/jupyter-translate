@@ -1,5 +1,20 @@
 import json, fire, os, re
 from googletrans import Translator
+import re
+
+def is_contain_chinese(check_str):
+    """
+    判断传入的字符串中是否含有中文
+    :param check_str: 需要检查的字符串
+    :return: True - 包含中文；False - 不包含中文
+    """
+    zh_pattern = re.compile(u'[\u4e00-\u9fa5]+')
+    # [\u4e00-\u9fa5]是Unicode3.0至Unicode8.0之间汉字的编码范围
+    match = zh_pattern.search(check_str)
+    if match:
+        return True
+    else:
+        return False
 
 def translate_text(text, dest_language='pt'):
     translator = Translator()
@@ -56,18 +71,30 @@ def translate_markdown(text, dest_language='pt'):
 
         return text
 
-    # Check if there are special Markdown tags
+    # Check if there are special Markdown tags    
     if len(text)>=2:
-        if text[-1:]==END_LINE:
+        for header in HEADERS:
+            len_header=len(header)
+            if text[:len_header]==header:
+                if text[-1:]==END_LINE: 
+                    return header + translate(text[len_header:]) + '\n'
+                else:
+                    return header + translate(text[len_header:])  
+                
+        if text[-1:]==END_LINE: 
             return translate(text)+'\n'
 
         if text[:2]==IMG_PREFIX:
             return text
 
-        for header in HEADERS:
-            len_header=len(header)
-            if text[:len_header]==header:
-                return header + translate(text[len_header:])
+        # for header in HEADERS:
+        #     print("header:",header)
+        #     len_header=len(header)
+        #     print("len_header:",len_header)
+        #     print("text:",text,text[:len_header])
+        #     if text[:len_header]==header:
+        #         print("-------------------------------------------------??????")
+        #         return header + translate(text[len_header:])
 
     return translate(text)
 
@@ -83,9 +110,16 @@ def jupyter_translate(fname, language='pt', rename_source_file=False, translate_
         base_name, extension = os.path.splitext(fname)
         directory_path = os.path.dirname(base_name)
         file_name = os.path.basename(base_name)
-        translated_base_name = os.path.join(directory_path, translate_text(file_name, dest_language=language))
-        dest_fname = f"{translated_base_name}{extension}"
-        #print("____:",base_name,file_name,translated_base_name,dest_fname)
+        translate_file_name = translate_text(file_name, dest_language=language)
+        if is_contain_chinese(file_name):
+            print(f"Filename {file_name} contains Chinese characters....")
+            return 
+        if translate_file_name == file_name:
+            print(f"Filename {file_name} not translated. Why ...")
+            dest_fname = f"{'.'.join(fname.split('.')[:-1])}_{language}.ipynb"
+        else:
+            translated_base_name = os.path.join(directory_path, translate_file_name)
+            dest_fname = f"{translated_base_name}{extension}"
     else:
         dest_fname = f"{'.'.join(fname.split('.')[:-1])}_{language}.ipynb"
 
