@@ -1,6 +1,9 @@
 import json, fire, os, re
 from googletrans import Translator
 
+def translate_text(text, dest_language='pt'):
+    translator = Translator()
+    return translator.translate(text, dest=dest_language).text
 
 def translate_markdown(text, dest_language='pt'):
     # Regex expressions
@@ -65,11 +68,14 @@ def translate_markdown(text, dest_language='pt'):
     return translate(text)
 
 #export
-def jupyter_translate(fname, language='pt', rename_source_file=False, print_translation=False):
+def jupyter_translate(fname, language='pt', rename_source_file=False, dest_file=None, translate_filename=True, print_translation=False):
     """
     TODO:
     add dest_path: Destination folder in order to save the translated files.
     """
+
+    print("dest_file ---------", dest_file)
+
     data_translated = json.load(open(fname, 'r'))
 
     skip_row=False
@@ -86,19 +92,32 @@ def jupyter_translate(fname, language='pt', rename_source_file=False, print_tran
                             translate_markdown(source, dest_language=language)
             if print_translation:
                 print(data_translated['cells'][i]['source'][j])
-
+    # 翻译文件名
+    if translate_filename:
+        base_name, extension = os.path.splitext(fname)
+        translated_base_name = translate_text(base_name, dest_language=language)
+        dest_fname = f"{translated_base_name}{extension}"
+    else:
+        dest_fname = f"{'.'.join(fname.split('.')[:-1])}_{language}.ipynb"
+    
+    
+   # 保存翻译后的文件
     if rename_source_file:
-        fname_bk = f"{'.'.join(fname.split('.')[:-1])}_bk.ipynb" # index.ipynb -> index_bk.ipynb
-
+        fname_bk = f"{'.'.join(fname.split('.')[:-1])}_bk.ipynb"
         os.rename(fname, fname_bk)
         print(f'{fname} has been renamed as {fname_bk}')
 
-        open(fname,'w').write(json.dumps(data_translated))
-        print(f'The {language} translation has been saved as {fname}')
-    else:
-        dest_fname = f"{'.'.join(fname.split('.')[:-1])}_{language}.ipynb" # any.name.ipynb -> any.name_pt.ipynb
-        open(dest_fname,'w').write(json.dumps(data_translated))
-        print(f'The {language} translation has been saved as {dest_fname}')
+    # 使用 dest_file 作为输出文件路径
+    if dest_file is None:
+        dest_file = f"{'.'.join(fname.split('.')[:-1])}_{language}.ipynb"
+
+    # 确保目标文件夹存在
+    os.makedirs(os.path.dirname(dest_file), exist_ok=True)
+
+
+    with open(dest_fname, 'w') as f:
+        json.dump(data_translated, f, ensure_ascii=False, indent=4)
+    print(f'The {language} translation has been saved as {dest_fname}')
 
 def markdown_translator(input_fpath, output_fpath, input_name_suffix=''):
     with open(input_fpath,'r') as f:
