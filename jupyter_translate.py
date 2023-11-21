@@ -130,18 +130,28 @@ def jupyter_translate(fname, language='pt', rename_source_file=False, translate_
     data_translated = json.load(open(fname, 'r'))
     skip_row=False
     for i, cell in enumerate(data_translated['cells']):
-        for j, source in enumerate(cell['source']):
-            if cell['cell_type']=='markdown':
-                if source[:3]=='```':
-                    skip_row = not skip_row # Invert flag until I find next code block
+      if cell['cell_type'] == 'markdown':
+        new_source = []  # 创建一个新的字符串列表
+        skip_row = False
+        for source in cell['source']:
+            if source[:3] == '```':
+                skip_row = not skip_row  # Invert flag until I find next code block
 
-                if not skip_row:
-                    if source not in ['```\n', '```', '\n'] and source[:4] != '<img':  # Don't translate cause
-                    # of: 1. ``` -> ëëë 2. '\n' disappeared 3. image's links damaged
-                        data_translated['cells'][i]['source'][j] = \
-                            translate_markdown(source, dest_language=language)
-            if print_translation:
-                print(data_translated['cells'][i]['source'][j])
+            if not skip_row:
+                if source not in ['```\n', '```', '\n'] and source[:4] != '<img':
+                    # 翻译并添加到新列表
+                    translated = translate_markdown(source, dest_language=language)
+                    new_source.append(translated)
+                    if print_translation:
+                        print(translated)
+                else:
+                    # 不需要翻译的部分直接添加到新列表
+                    new_source.append(source)
+            else:
+                new_source.append(source)
+        # 更新 cell['source'] 为新的字符串列表
+        cell['source'] = new_source
+
     # # 翻译文件名
     # if translate_filename:
     #     base_name, extension = os.path.splitext(fname)
